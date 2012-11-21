@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<script>
+
+function runParticleSystem() {
+
+	var Game = {};
+	var canvas = document.getElementById('particlesystem');
+	if (canvas.getContext) {
+
+		console.log("Starting particle system...");
+
+
+
+        // Variables for whole game
+        var ctx = canvas.getContext('2d');
+        var width = canvas.width;
+        var height = canvas.height;
+        var particles = [];
+        var numParticles = 50;
+        var graviton;
+        var mouseX;
+        var mouseY;
+        var count = 0;
+
+        Game.fps = 30;
+
+        Game.run = function() {
+        	Game.update();
+        	Game.draw();
+        };
+
+        Game.start = function() {
+
+        	graviton = new Graviton(0, 0, 10, .8);
+
+        	for (var i = 0; i < numParticles; i++) {
+
+        		var posX = getRandomInt(0, width);
+        		var posY = getRandomInt(0, height);
+        		var velX = getRandomInt(-5, 5);
+        		var velY = getRandomInt(-5, 5);
+        		var maxVel = 5;
+
+        		var particle = new Particle(posX, posY, velX, velY, maxVel);
+        		particles[i] = particle;
+        	}
+
+        	setInterval(Game.run, 1000 / Game.fps);
+        }
+
+        Game.update = function() {
+
+        	count++;
+
+        	if (count % 10 == 0) {
+	        	graviton.posX = mouseX;
+	        	graviton.posY = mouseY;
+	        }
+
+        	particles.forEach(function(particle) {
+        		graviton.attract(particle);
+        		particle.update();
+        	});
+	        
+        };
+
+        Game.draw = function() {
+        	ctx.clearRect(0, 0, width, height);
+        	particles.forEach(function(particle) {
+        		particle.draw(ctx);
+        	});
+        };
+
+        // Constructor for particle object
+        function Particle(posX, posY, velX, velY, maxVel) {
+        	this.posX = posX;
+        	this.posY = posY;
+        	this.__defineGetter__('velX', function() {return this.velocityX;});
+        	this.__defineSetter__('velX', function(vel) {
+				if (vel > maxVel)
+        			this.velocityX = maxVel;
+        		else if (vel < -maxVel)
+        			this.velocityX = -maxVel;
+        		else
+        			this.velocityX = vel;
+        	})
+
+        	this.__defineGetter__('velY', function() {return this.velocityY;});
+        	this.__defineSetter__('velY', function(vel) {
+				if (vel > maxVel)
+        			this.velocityY = maxVel;
+        		else if (vel < -maxVel)
+        			this.velocityY = -maxVel;
+        		else
+        			this.velocityY = vel;
+        	})
+
+        	this.velX = velX;
+        	this.velY = velY;
+
+        	this.update = function() {
+        		this.posX += this.velX;
+        		this.posY += this.velY;
+        	};
+        	this.draw = function(ctx) {
+        		ctx.fillRect(this.posX, this.posY, 4, 4);
+        	}
+        }
+
+        function Graviton(posX, posY, errDist, strength) {
+        	this.errDist = errDist;
+        	this.strength = strength;
+        	this.posX = posX;
+        	this.posY = posY;
+
+        	this.attract = function(entity) {
+
+        		var distX = this.posX - entity.posX;
+        		var distY = this.posY - entity.posY;
+
+        		var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
+
+        		entity.velX += this.strength * invSqrt * distX;
+        		entity.velY += this.strength * invSqrt * distY;
+
+        		entity.velX *= getRandomArbitary(.8, 1.2);
+        		entity.velY *= getRandomArbitary(.8, 1.2);
+        		
+        	};
+        }
+
+		/**
+		 * Returns a random number between min and max
+		 */
+		function getRandomArbitary (min, max) {
+		    return Math.random() * (max - min) + min;
+		}
+
+	    /**
+         * Returns a random integer between min and max
+         * Using Math.round() will give you a non-uniform distribution!
+         */
+         function getRandomInt(min, max) {
+         	return Math.floor(Math.random() * (max - min + 1)) + min;
+         }
+
+		function getMousePos(canvas, evt) {
+			var rect = canvas.getBoundingClientRect();
+			return {
+				x: evt.clientX - rect.left,
+				y: evt.clientY - rect.top
+			};
+		}
+	    canvas.addEventListener('mousemove', function(evt) {
+	        var mousePos = getMousePos(canvas, evt);
+	        mouseX = mousePos.x;
+	        mouseY = mousePos.y;
+	    }, false);
+
+         // Start the darn thing!
+         Game.start();
+     }
+    else {
+     	canvas.innerHTML = "Sorry, the particle system will not work with your browser.";
+    }
+
+}
+         </script>
+     </head>
+
+     <body onload="runParticleSystem()">
+     	<canvas id="particlesystem" width="800" height="600" style="border: 1px;"></canvas>
+     </body>
+
+     </html>

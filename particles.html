@@ -23,6 +23,7 @@ function runParticleSystem() {
         var graviton;
         var mouseX;
         var mouseY;
+        var mouseDown = false;
         var count = 0;
 
         Game.fps = 30;
@@ -61,7 +62,8 @@ function runParticleSystem() {
 	        }
 
         	particles.forEach(function(particle) {
-        		graviton.attract(particle);
+        		if (mouseDown)
+	        		graviton.attract(particle);
         		particle.update();
         	});
 	        
@@ -106,7 +108,7 @@ function runParticleSystem() {
         		this.posY += this.velY;
         	};
         	this.draw = function(ctx) {
-        		ctx.fillRect(this.posX, this.posY, 4, 4);
+        		ctx.fillRect(this.posX, this.posY, 2, 2);
         	}
         }
 
@@ -126,8 +128,8 @@ function runParticleSystem() {
         		entity.velX += this.strength * invSqrt * distX;
         		entity.velY += this.strength * invSqrt * distY;
 
-        		entity.velX *= getRandomArbitary(.8, 1.2);
-        		entity.velY *= getRandomArbitary(.8, 1.2);
+        		entity.velX *= getRandomDecimal(.8, 1.2);
+        		entity.velY *= getRandomDecimal(.8, 1.2);
         		
         	};
         }
@@ -135,7 +137,7 @@ function runParticleSystem() {
 		/**
 		 * Returns a random number between min and max
 		 */
-		function getRandomArbitary (min, max) {
+		function getRandomDecimal (min, max) {
 		    return Math.random() * (max - min) + min;
 		}
 
@@ -154,11 +156,23 @@ function runParticleSystem() {
 				y: evt.clientY - rect.top
 			};
 		}
+
+		// Event handlers to provide updated mouse stuff
 	    canvas.addEventListener('mousemove', function(evt) {
 	        var mousePos = getMousePos(canvas, evt);
 	        mouseX = mousePos.x;
 	        mouseY = mousePos.y;
 	    }, false);
+
+	    canvas.addEventListener('mousedown', function(evt) {
+	    	mouseDown = true;
+	    }, false);
+
+	    canvas.addEventListener('mouseup', function(evt) {
+	    	mouseDown = false;
+	    }, false);
+
+
 
          // Start the darn thing!
          Game.start();
@@ -172,7 +186,7 @@ function runParticleSystem() {
      </head>
 
      <body onload="runParticleSystem()">
-     	<canvas id="particlesystem" width="800" height="600" style="border: 1px;"></canvas>
+     	<canvas id="particlesystem" width="800" height="600" style="border:solid 1px #000000;"></canvas>
      </body>
 
      </html>

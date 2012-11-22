@@ -261,7 +261,8 @@ function runParticleSystem() {
 
         $(document).keypress(function (evt) {
             if (evt.which == 49) { // Pressed 1
-                var block = new Block(mouseX, mouseY, 70, 70);
+                var size = 70;
+                var block = new Block(mouseX - size / 2, mouseY - size / 2, size, size);
                 obstacles.push(block);
             }
         });

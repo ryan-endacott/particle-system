@@ -86,6 +86,8 @@ function runParticleSystem() {
 
             for (var i = deadParticles.length - 1; i >= 0; i--)
                 particles.splice(i, 1);
+
+            handleCollisions(particles, obstacles);
 	        
         };
 
@@ -181,8 +183,15 @@ function runParticleSystem() {
         function handleCollisions (particles, obstacles) {
             particles.forEach(function (particle) {
                 obstacles.forEach(function (obstacle) {
-                    
-                })
+                    if (particle.posX < obstacle.posX2 && particle.posX > obstacle.posX &&
+                            particle.posY < obstacle.posY2 && particle.posY > obstacle.posY) {
+
+                        particle.posX -= particle.velX;
+                        particle.posY -= particle.velY;
+                        particle.velX = -particle.velX;
+                        particle.velY = -particle.velY;
+                    }
+                });
             });
         }
 

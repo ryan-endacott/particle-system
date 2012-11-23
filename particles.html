@@ -3,286 +3,287 @@
 
 <head>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-	<script>
+    <script>
+
+
+
+// Variables to mess with in runParticleSystem() because they require DOM
+var Game = {};
+var canvas;
+var ctx;
+var width;
+var height;
+
+
+// Variables for whole game
+var particles = [];
+var obstacles = [];
+var numParticles = 100;
+var numEmit = 40;
+var graviton;
+var mouseX;
+var mouseY;
+var leftMouseDown = false;
+var rightMouseDown = false;
+var count = 0;
+var maxAge = 500;
+var maxVel = 7;
+
+Game.fps = 30;
+
+Game.run = function () {
+    Game.update();
+    Game.draw();
+};
+
+Game.start = function () {
+
+    graviton = new Graviton(0, 0, 10, .8);
+
+    for (var i = 0; i < numParticles; i++) {
+
+        var posX = getRandomInt(0, width);
+        var posY = getRandomInt(0, height);
+        var velX = getRandomInt(-5, 5);
+        var velY = getRandomInt(-5, 5);
+
+        var particle = new Particle(posX, posY, velX, velY, maxVel);
+        particles[i] = particle;
+    }
+
+    setInterval(Game.run, 1000 / Game.fps);
+}
+
+Game.update = function () {
+
+    count++;
+
+    if (rightMouseDown) emitParticles(mouseX, mouseY, numEmit, maxVel);
+
+    if (count % 10 == 0 && leftMouseDown) {
+        graviton.posX = mouseX;
+        graviton.posY = mouseY;
+    }
+
+
+    var deadParticles = [];
+
+    particles.forEach(function (particle, index) {
+
+
+        particle.update();
+        if (particle.age > maxAge) deadParticles.push(index);
+
+        if (leftMouseDown) graviton.attract(particle);
+        else slowParticle(particle, .98);
+
+    });
+
+
+    for (var i = deadParticles.length - 1; i >= 0; i--)
+    particles.splice(i, 1);
+
+    handleCollisions(particles, obstacles);
+
+};
+
+Game.draw = function () {
+    ctx.clearRect(0, 0, width, height);
+
+
+    ctx.fillStyle = 'red';
+
+    particles.forEach(function (particle) {
+        particle.draw(ctx);
+    });
+
+
+    ctx.fillStyle = 'black';
+
+    obstacles.forEach(function (obstacle) {
+        obstacle.draw(ctx);
+    });
+
+
+};
+
+// Constructor for particle object
+function Particle(posX, posY, velX, velY, maxVel) {
+    this.age = 0;
+    this.posX = posX;
+    this.posY = posY;
+    this.__defineGetter__('velX', function () {
+        return this.velocityX;
+    });
+    this.__defineSetter__('velX', function (vel) {
+        if (vel > maxVel) this.velocityX = maxVel;
+        else if (vel < -maxVel) this.velocityX = -maxVel;
+        else this.velocityX = vel;
+    })
+
+    this.__defineGetter__('velY', function () {
+        return this.velocityY;
+    });
+    this.__defineSetter__('velY', function (vel) {
+        if (vel > maxVel) this.velocityY = maxVel;
+        else if (vel < -maxVel) this.velocityY = -maxVel;
+        else this.velocityY = vel;
+    })
+
+    this.velX = velX;
+    this.velY = velY;
+
+    this.update = function () {
+        this.posX += this.velX;
+        this.posY += this.velY;
+        var avgVel = (Math.abs(this.velX) + Math.abs(this.velY)) / 2;
+        this.age += 1.5 / avgVel;
+        this.age += .3;
+    };
+    this.draw = function (ctx) {
+
+        // Round to integers to increase performance
+        var roundedX = (.5 + this.posX) << 0;
+        var roundedY = (.5 + this.posY) << 0;
+
+        ctx.fillRect(roundedX, roundedY, 2, 2);
+    };
+}
+
+
+// Constructor for block object
+function Block(posX, posY, width, height) {
+    this.posX = posX;
+    this.posY = posY;
+    this.posX2 = posX + width;
+    this.posY2 = posY + height;
+    this.width = width;
+    this.height = height;
+
+    this.draw = function (ctx) {
+        ctx.fillRect(this.posX, this.posY, this.width, this.height);
+    };
+}
+
+function Graviton(posX, posY, errDist, strength) {
+    this.errDist = errDist;
+    this.strength = strength;
+    this.posX = posX;
+    this.posY = posY;
+
+    this.attract = function (entity) {
+
+        var distX = this.posX - entity.posX;
+        var distY = this.posY - entity.posY;
+
+        var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
+
+        entity.velX += this.strength * invSqrt * distX;
+        entity.velY += this.strength * invSqrt * distY;
+
+        entity.velX *= getRandomDecimal(.8, 1.2);
+        entity.velY *= getRandomDecimal(.8, 1.2);
+
+    };
+}
+
+
+function handleCollisions(particles, obstacles) {
+    particles.forEach(function (particle) {
+        obstacles.forEach(function (obstacle) {
+
+            // If is going to collide after x-direction move next turn
+            if (checkCollision(particle.posX + particle.velX, particle.posY, obstacle)) {
+                // Reverse and deplete x velocity
+                particle.velX = -particle.velX * .2;
+            }
+
+            // If is going to collide after y-direction move next turn
+            if (checkCollision(particle.posX, particle.posY + particle.velY, obstacle)) {
+                // Reverse and deplete y velocity
+                particle.velY = -particle.velY * .2;
+            }
+        });
+    });
+
+    function checkCollision(pointX, pointY, obstacle) {
+        return pointX < obstacle.posX2 && pointX > obstacle.posX && pointY < obstacle.posY2 && pointY > obstacle.posY;
+    }
+}
+
+
+function emitParticles(posX, posY, num, maxVel) {
+    for (var i = 0; i < num; i++) {
+
+        var velX = getRandomDecimal(-maxVel, maxVel);
+        var velY = getRandomDecimal(-maxVel, maxVel);
+        var p = new Particle(posX, posY, velX, velY, maxVel);
+        particles.push(p);
+
+    }
+}
+
+function slowParticle(particle, factor) {
+    particle.velX *= factor;
+    particle.velY *= factor;
+}
+
+/**
+ * Returns a random number between min and max
+ */
+function getRandomDecimal(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Returns a random integer between min and max
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+}
+
+
+
+
 
 function runParticleSystem() {
 
-	var Game = {};
-	var canvas = document.getElementById('particlesystem');
-	if (canvas.getContext) {
+    canvas = document.getElementById('particlesystem')
 
-		console.log("Starting particle system...");
+    if (canvas.getContext) {
+        console.log("Starting particle system...");
+        ctx = canvas.getContext('2d');
+        width = canvas.width;
+        height = canvas.height;
 
-
-
-        // Variables for whole game
-        var ctx = canvas.getContext('2d');
-        var width = canvas.width;
-        var height = canvas.height;
-        var particles = [];
-        var obstacles = [];
-        var numParticles = 100;
-        var numEmit = 40;
-        var graviton;
-        var mouseX;
-        var mouseY;
-        var leftMouseDown = false;
-        var rightMouseDown = false;
-        var count = 0;
-        var maxAge = 500;
-        var maxVel = 7;
-
-        Game.fps = 30;
-
-        Game.run = function() {
-        	Game.update();
-        	Game.draw();
-        };
-
-        Game.start = function() {
-
-        	graviton = new Graviton(0, 0, 10, .8);
-
-        	for (var i = 0; i < numParticles; i++) {
-
-        		var posX = getRandomInt(0, width);
-        		var posY = getRandomInt(0, height);
-        		var velX = getRandomInt(-5, 5);
-        		var velY = getRandomInt(-5, 5);
-
-        		var particle = new Particle(posX, posY, velX, velY, maxVel);
-        		particles[i] = particle;
-        	}
-
-        	setInterval(Game.run, 1000 / Game.fps);
-        }
-
-        Game.update = function() {
-
-        	count++;
-
-            if (rightMouseDown) 
-                emitParticles(mouseX, mouseY, numEmit, maxVel);
-
-            if (count % 10 == 0 && leftMouseDown) {
-            	graviton.posX = mouseX;
-            	graviton.posY = mouseY;
-            }
-
-
-            var deadParticles = [];
-
-        	particles.forEach(function(particle, index) {
-
-
-        		particle.update();
-                if (particle.age > maxAge)
-                    deadParticles.push(index);
-
-                if (leftMouseDown)
-                    graviton.attract(particle);
-                else
-                    slowParticle(particle, .98);
-
-        	});
-
-
-            for (var i = deadParticles.length - 1; i >= 0; i--)
-                particles.splice(i, 1);
-
-            handleCollisions(particles, obstacles);
-	        
-        };
-
-        Game.draw = function() {
-        	ctx.clearRect(0, 0, width, height);
-
-
-            ctx.fillStyle = 'red';
-
-            particles.forEach(function(particle) {
-                particle.draw(ctx);
-            });
-
-            
-            ctx.fillStyle = 'black';
-
-            obstacles.forEach(function (obstacle) {
-                obstacle.draw(ctx);
-            });
-
-
-                };
-
-        // Constructor for particle object
-        function Particle(posX, posY, velX, velY, maxVel) {
-            this.age = 0;
-        	this.posX = posX;
-        	this.posY = posY;
-        	this.__defineGetter__('velX', function() {return this.velocityX;});
-        	this.__defineSetter__('velX', function(vel) {
-				if (vel > maxVel)
-        			this.velocityX = maxVel;
-        		else if (vel < -maxVel)
-        			this.velocityX = -maxVel;
-        		else
-        			this.velocityX = vel;
-        	})
-
-        	this.__defineGetter__('velY', function() {return this.velocityY;});
-        	this.__defineSetter__('velY', function(vel) {
-				if (vel > maxVel)
-        			this.velocityY = maxVel;
-        		else if (vel < -maxVel)
-        			this.velocityY = -maxVel;
-        		else
-        			this.velocityY = vel;
-        	})
-
-        	this.velX = velX;
-        	this.velY = velY;
-
-        	this.update = function() {
-        		this.posX += this.velX;
-        		this.posY += this.velY;
-                var avgVel = (Math.abs(this.velX) + Math.abs(this.velY))/2;
-                this.age += 1.5/avgVel;
-                this.age += .3;
-        	};
-        	this.draw = function(ctx) {
-
-                // Round to integers to increase performance
-                var roundedX = (.5 + this.posX) << 0;
-                var roundedY = (.5 + this.posY) << 0;
-
-        		ctx.fillRect(roundedX, roundedY, 2, 2);
-        	};
-        }
-
-
-        // Constructor for block object
-        function Block (posX, posY, width, height) {
-            this.posX = posX;
-            this.posY = posY;
-            this.posX2 = posX + width;
-            this.posY2 = posY + height;
-            this.width = width;
-            this.height = height;
-
-            this.draw = function (ctx) {
-                ctx.fillRect(this.posX, this.posY, this.width, this.height);
-            };
-        }
-
-        function Graviton(posX, posY, errDist, strength) {
-        	this.errDist = errDist;
-        	this.strength = strength;
-        	this.posX = posX;
-        	this.posY = posY;
-
-        	this.attract = function(entity) {
-
-        		var distX = this.posX - entity.posX;
-        		var distY = this.posY - entity.posY;
-
-        		var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
-
-        		entity.velX += this.strength * invSqrt * distX;
-        		entity.velY += this.strength * invSqrt * distY;
-
-        		entity.velX *= getRandomDecimal(.8, 1.2);
-        		entity.velY *= getRandomDecimal(.8, 1.2);
-        		
-        	};
-        }
-
-
-        function handleCollisions (particles, obstacles) {
-            particles.forEach(function (particle) {
-                obstacles.forEach(function (obstacle) {
-
-                    // If is going to collide after x-direction move next turn
-                    if(checkCollision(particle.posX + particle.velX, particle.posY, obstacle)) {
-                        // Reverse and deplete x velocity
-                        particle.velX = -particle.velX * .2;
-                    }
-
-                    // If is going to collide after y-direction move next turn
-                    if(checkCollision(particle.posX, particle.posY + particle.velY, obstacle)) {
-                        // Reverse and deplete y velocity
-                        particle.velY = -particle.velY * .2;
-                    }
-                });
-            });
-
-            function checkCollision (pointX, pointY, obstacle) {
-                return pointX < obstacle.posX2 && pointX > obstacle.posX &&
-                            pointY < obstacle.posY2 && pointY > obstacle.posY;
-            }
-        }
-
-
-        function emitParticles(posX, posY, num, maxVel) {
-            for (var i = 0; i < num; i++) {
-
-                var velX = getRandomDecimal(-maxVel, maxVel);
-                var velY = getRandomDecimal(-maxVel, maxVel);
-                var p = new Particle(posX, posY, velX, velY, maxVel);
-                particles.push(p);
-
-            }
-        }
-
-        function slowParticle(particle, factor) {
-            particle.velX *= factor;
-            particle.velY *= factor;
-        }
-
-		/**
-		 * Returns a random number between min and max
-		 */
-		function getRandomDecimal (min, max) {
-		    return Math.random() * (max - min) + min;
-		}
-
-	    /**
-         * Returns a random integer between min and max
-         * Using Math.round() will give you a non-uniform distribution!
-         */
-         function getRandomInt(min, max) {
-         	return Math.floor(Math.random() * (max - min + 1)) + min;
-         }
-
-		function getMousePos(canvas, evt) {
-			var rect = canvas.getBoundingClientRect();
-			return {
-				x: evt.clientX - rect.left,
-				y: evt.clientY - rect.top
-			};
-		}
-
-		// Event handlers to provide updated mouse stuff
-	    canvas.addEventListener('mousemove', function(evt) {
-	        var mousePos = getMousePos(canvas, evt);
-	        mouseX = mousePos.x;
-	        mouseY = mousePos.y;
-	    }, false);
+        // Event handlers to provide updated mouse stuff
+        // Required DOM
+        canvas.addEventListener('mousemove', function (evt) {
+            var mousePos = getMousePos(canvas, evt);
+            mouseX = mousePos.x;
+            mouseY = mousePos.y;
+        }, false);
 
 
         $(canvas).mousedown(function (evt) {
             var which = evt.which;
-            if (which == 1)
-                leftMouseDown = true;
-            else if (which == 3)
-                rightMouseDown = true;
+            if (which == 1) leftMouseDown = true;
+            else if (which == 3) rightMouseDown = true;
         });
 
         $(canvas).mouseup(function (evt) {
             var which = evt.which;
-            if (which == 1)
-                leftMouseDown = false;
-            else if (which == 3)
-                rightMouseDown = false;      
+            if (which == 1) leftMouseDown = false;
+            else if (which == 3) rightMouseDown = false;
         });
 
         $(document).keypress(function (evt) {
@@ -294,22 +295,25 @@ function runParticleSystem() {
         });
 
         window.oncontextmenu = function () {
-            return false;     // cancel context menu
+            return false; // cancel context menu
         }
 
-         // Start the darn thing!
-         Game.start();
-     }
-    else {
-     	canvas.innerHTML = "Sorry, the particle system will not work with your browser.";
+        // Start the darn thing!
+        Game.start();
+
     }
-
+    else {
+        canvas.innerHTML = "Sorry, the particle system will not work with your browser.";
+    }
+    
 }
-         </script>
-     </head>
 
-     <body onload="runParticleSystem()">
-     	<canvas id="particlesystem" width="800" height="600" style="border:solid 1px #000000;"></canvas>
-     </body>
 
-     </html>
+        </script>
+    </head>
+
+    <body onload="runParticleSystem()">
+      <canvas id="particlesystem" width="800" height="600" style="border:solid 1px #000000;"></canvas>
+  </body>
+
+  </html>

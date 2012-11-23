@@ -22,14 +22,14 @@ function runParticleSystem() {
         var particles = [];
         var obstacles = [];
         var numParticles = 100;
-        var numEmit = 10;
+        var numEmit = 40;
         var graviton;
         var mouseX;
         var mouseY;
         var leftMouseDown = false;
         var rightMouseDown = false;
         var count = 0;
-        var maxAge = 300;
+        var maxAge = 500;
         var maxVel = 7;
 
         Game.fps = 30;
@@ -73,14 +73,17 @@ function runParticleSystem() {
             var deadParticles = [];
 
         	particles.forEach(function(particle, index) {
-                if (leftMouseDown)
-	        		graviton.attract(particle);
-                else
-                    slowParticle(particle, .98);
+
 
         		particle.update();
                 if (particle.age > maxAge)
                     deadParticles.push(index);
+
+                if (leftMouseDown)
+                    graviton.attract(particle);
+                else
+                    slowParticle(particle, .98);
+
         	});
 
 
@@ -93,14 +96,23 @@ function runParticleSystem() {
 
         Game.draw = function() {
         	ctx.clearRect(0, 0, width, height);
-        	particles.forEach(function(particle) {
-        		particle.draw(ctx);
-        	});
+
+
+            ctx.fillStyle = 'red';
+
+            particles.forEach(function(particle) {
+                particle.draw(ctx);
+            });
+
+            
+            ctx.fillStyle = 'black';
 
             obstacles.forEach(function (obstacle) {
                 obstacle.draw(ctx);
             });
-        };
+
+
+                };
 
         // Constructor for particle object
         function Particle(posX, posY, velX, velY, maxVel) {
@@ -138,7 +150,12 @@ function runParticleSystem() {
                 this.age += .3;
         	};
         	this.draw = function(ctx) {
-        		ctx.fillRect(this.posX, this.posY, 2, 2);
+
+                // Round to integers to increase performance
+                var roundedX = (.5 + this.posX) << 0;
+                var roundedY = (.5 + this.posY) << 0;
+
+        		ctx.fillRect(roundedX, roundedY, 2, 2);
         	};
         }
 
@@ -183,16 +200,25 @@ function runParticleSystem() {
         function handleCollisions (particles, obstacles) {
             particles.forEach(function (particle) {
                 obstacles.forEach(function (obstacle) {
-                    if (particle.posX < obstacle.posX2 && particle.posX > obstacle.posX &&
-                            particle.posY < obstacle.posY2 && particle.posY > obstacle.posY) {
 
-                        particle.posX -= particle.velX;
-                        particle.posY -= particle.velY;
-                        particle.velX = -particle.velX;
-                        particle.velY = -particle.velY;
+                    // If is going to collide after x-direction move next turn
+                    if(checkCollision(particle.posX + particle.velX, particle.posY, obstacle)) {
+                        // Reverse and deplete x velocity
+                        particle.velX = -particle.velX * .2;
+                    }
+
+                    // If is going to collide after y-direction move next turn
+                    if(checkCollision(particle.posX, particle.posY + particle.velY, obstacle)) {
+                        // Reverse and deplete y velocity
+                        particle.velY = -particle.velY * .2;
                     }
                 });
             });
+
+            function checkCollision (pointX, pointY, obstacle) {
+                return pointX < obstacle.posX2 && pointX > obstacle.posX &&
+                            pointY < obstacle.posY2 && pointY > obstacle.posY;
+            }
         }
 
 

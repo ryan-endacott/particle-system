@@ -21,6 +21,7 @@ var obstacles = [];
 var numParticles = 100;
 var numEmit = 40;
 var graviton;
+var particleHandler;
 var mouseX;
 var mouseY;
 var leftMouseDown = false;
@@ -39,6 +40,7 @@ Game.run = function () {
 Game.start = function () {
 
     graviton = new Graviton(0, 0, 10, .8);
+    particleHandler = new ParticleHandler();
 
     for (var i = 0; i < numParticles; i++) {
 
@@ -58,30 +60,21 @@ Game.update = function () {
 
     count++;
 
-    if (rightMouseDown) emitParticles(mouseX, mouseY, numEmit, maxVel);
+    if (rightMouseDown) 
+        emitParticles(mouseX, mouseY, numEmit, maxVel);
 
     if (count % 10 == 0 && leftMouseDown) {
         graviton.posX = mouseX;
         graviton.posY = mouseY;
     }
 
+    particleHandler.update(particles);
 
-    var deadParticles = [];
+    if (leftMouseDown) 
+        graviton.attract(particles);
+    else 
+        slowParticles(particles, .98);
 
-    particles.forEach(function (particle, index) {
-
-
-        particle.update();
-        if (particle.age > maxAge) deadParticles.push(index);
-
-        if (leftMouseDown) graviton.attract(particle);
-        else slowParticle(particle, .98);
-
-    });
-
-
-    for (var i = deadParticles.length - 1; i >= 0; i--)
-    particles.splice(i, 1);
 
     handleCollisions(particles, obstacles);
 
@@ -93,9 +86,7 @@ Game.draw = function () {
 
     ctx.fillStyle = 'red';
 
-    particles.forEach(function (particle) {
-        particle.draw(ctx);
-    });
+    particleHandler.draw(particles);
 
 
     ctx.fillStyle = 'black';
@@ -106,6 +97,47 @@ Game.draw = function () {
 
 
 };
+
+// Particle wrapper to do updating and drawing to (hopefully) increase
+// performance and limit function calls
+function ParticleHandler() {
+    this.update = function(particles) {
+
+        var deadParticles = [];
+
+        for (var i = 0; i < particles.length; i++) {
+            var particle = particles[i];
+            particle.posX += particle.velX;
+            particle.posY += particle.velY;
+
+            // Slow moving particles die faster
+            var avgVel = (Math.abs(particle.velX) + Math.abs(particle.velY)) / 2;
+            particle.age += 1.5 / avgVel;
+            particle.age += .3;
+
+            // Remove if older than max
+            if (particle.age > maxAge)
+                deadParticles.push(i);
+        }
+
+        for (var i = deadParticles.length - 1; i >= 0; i--)
+            particles.splice(i, 1);
+
+    };
+
+    this.draw = function(particles) {
+        for (var i = 0; i < particles.length; i++) {
+            var particle = particles[i];
+
+            // Round to integers to increase performance
+            var roundedX = (.5 + particle.posX) << 0;
+            var roundedY = (.5 + particle.posY) << 0;
+
+            ctx.fillRect(roundedX, roundedY, 2, 2);            
+        }
+    };
+
+}
 
 // Constructor for particle object
 function Particle(posX, posY, velX, velY, maxVel) {
@@ -132,22 +164,6 @@ function Particle(posX, posY, velX, velY, maxVel) {
 
     this.velX = velX;
     this.velY = velY;
-
-    this.update = function () {
-        this.posX += this.velX;
-        this.posY += this.velY;
-        var avgVel = (Math.abs(this.velX) + Math.abs(this.velY)) / 2;
-        this.age += 1.5 / avgVel;
-        this.age += .3;
-    };
-    this.draw = function (ctx) {
-
-        // Round to integers to increase performance
-        var roundedX = (.5 + this.posX) << 0;
-        var roundedY = (.5 + this.posY) << 0;
-
-        ctx.fillRect(roundedX, roundedY, 2, 2);
-    };
 }
 
 
@@ -171,26 +187,35 @@ function Graviton(posX, posY, errDist, strength) {
     this.posX = posX;
     this.posY = posY;
 
-    this.attract = function (entity) {
+    this.attract = function (entities) {
 
-        var distX = this.posX - entity.posX;
-        var distY = this.posY - entity.posY;
+        for (var i = 0; i < entities.length; i++) {
+            var entity = entities[i];
 
-        var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
+            var distX = this.posX - entity.posX;
+            var distY = this.posY - entity.posY;
 
-        entity.velX += this.strength * invSqrt * distX;
-        entity.velY += this.strength * invSqrt * distY;
+            var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
 
-        entity.velX *= getRandomDecimal(.8, 1.2);
-        entity.velY *= getRandomDecimal(.8, 1.2);
+            entity.velX += this.strength * invSqrt * distX;
+            entity.velY += this.strength * invSqrt * distY;
 
+            entity.velX *= getRandomDecimal(.8, 1.2);
+            entity.velY *= getRandomDecimal(.8, 1.2);
+
+        }
     };
 }
 
 
 function handleCollisions(particles, obstacles) {
-    particles.forEach(function (particle) {
-        obstacles.forEach(function (obstacle) {
+    for (var i = 0; i < particles.length; i++) {
+
+        var particle = particles[i];
+
+        for (var j = 0; j < obstacles.length; j++) {
+
+            var obstacle = obstacles[j];
 
             // If is going to collide after x-direction move next turn
             if (checkCollision(particle.posX + particle.velX, particle.posY, obstacle)) {
@@ -203,8 +228,8 @@ function handleCollisions(particles, obstacles) {
                 // Reverse and deplete y velocity
                 particle.velY = -particle.velY * .2;
             }
-        });
-    });
+        }
+    }
 
     function checkCollision(pointX, pointY, obstacle) {
         return pointX < obstacle.posX2 && pointX > obstacle.posX && pointY < obstacle.posY2 && pointY > obstacle.posY;
@@ -223,9 +248,15 @@ function emitParticles(posX, posY, num, maxVel) {
     }
 }
 
-function slowParticle(particle, factor) {
-    particle.velX *= factor;
-    particle.velY *= factor;
+function slowParticles(particles, factor) {
+
+    for (var i = 0; i < particles.length; i++) {
+
+        var particle = particles[i];
+        particle.velX *= factor;
+        particle.velY *= factor;
+    }
+
 }
 
 /**

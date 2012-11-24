@@ -20,18 +20,18 @@ var height;
 // Variables for whole game
 var particles = [];
 var obstacles = [];
-var numParticles = 100;
-var numEmit = 40;
+var NUMSTARTPARTICLES = 100;
+var NUMEMIT = 40;
 var graviton;
-var gravitonStrength = .9;
+var GRAVITONSTRENGTH = .9;
 var particleHandler;
 var mouseX;
 var mouseY;
 var leftMouseDown = false;
 var rightMouseDown = false;
 var count = 0;
-var maxAge = 500;
-var maxVel = 7;
+var MAXAGE = 500;
+var MAXVEL = 7;
 
 Game.fps = 30;
 
@@ -42,17 +42,17 @@ Game.run = function () {
 
 Game.start = function () {
 
-    graviton = new Graviton(0, 0, gravitonStrength);
+    graviton = new Graviton(0, 0, GRAVITONSTRENGTH);
     particleHandler = new ParticleHandler();
 
-    for (var i = 0; i < numParticles; i++) {
+    for (var i = 0; i < NUMSTARTPARTICLES; i++) {
 
         var posX = getRandomInt(0, width);
         var posY = getRandomInt(0, height);
-        var velX = getRandomInt(-maxVel, maxVel);
-        var velY = getRandomInt(-maxVel, maxVel);
+        var velX = getRandomInt(-MAXVEL, MAXVEL);
+        var velY = getRandomInt(-MAXVEL, MAXVEL);
 
-        var particle = new Particle(posX, posY, velX, velY, maxVel);
+        var particle = new Particle(posX, posY, velX, velY, MAXVEL);
         particles[i] = particle;
     }
 
@@ -74,7 +74,7 @@ Game.update = function () {
     numParticlesLabel.innerHTML = particles.length;
 
     if (rightMouseDown) 
-        emitParticles(mouseX, mouseY, numEmit, maxVel);
+        emitParticles(mouseX, mouseY, NUMEMIT, MAXVEL);
 
 
     if (count % 5) {
@@ -132,7 +132,7 @@ function ParticleHandler() {
             particle.age += .3;
 
             // Remove if older than max
-            if (particle.age > maxAge)
+            if (particle.age > MAXAGE)
                 deadParticles.push(i);
         }
 
@@ -156,20 +156,20 @@ function ParticleHandler() {
 }
 
 // Constructor for particle object
-function Particle(posX, posY, velX, velY, maxVel) {
+function Particle(posX, posY, velX, velY, MAXVEL) {
     this.age = 0;
     this.posX = posX;
     this.posY = posY;
 
     this.setVelX = function (vel) {
-        if (vel > maxVel) this.velX = maxVel;
-        else if (vel < -maxVel) this.velX = -maxVel;
+        if (vel > MAXVEL) this.velX = MAXVEL;
+        else if (vel < -MAXVEL) this.velX = -MAXVEL;
         else this.velX = vel;
     };
 
     this.setVelY = function (vel) {
-        if (vel > maxVel) this.velY = maxVel;
-        else if (vel < -maxVel) this.velY = -maxVel;
+        if (vel > MAXVEL) this.velY = MAXVEL;
+        else if (vel < -MAXVEL) this.velY = -MAXVEL;
         else this.velY = vel;
     };
 
@@ -250,12 +250,12 @@ function handleCollisions(particles, obstacles) {
 }
 
 
-function emitParticles(posX, posY, num, maxVel) {
+function emitParticles(posX, posY, num, MAXVEL) {
     for (var i = 0; i < num; i++) {
 
-        var velX = getRandomDecimal(-maxVel, maxVel);
-        var velY = getRandomDecimal(-maxVel, maxVel);
-        var p = new Particle(posX, posY, velX, velY, maxVel);
+        var velX = getRandomDecimal(-MAXVEL, MAXVEL);
+        var velY = getRandomDecimal(-MAXVEL, MAXVEL);
+        var p = new Particle(posX, posY, velX, velY, MAXVEL);
         particles.push(p);
 
     }

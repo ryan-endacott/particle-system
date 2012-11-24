@@ -154,6 +154,9 @@ function ParticleHandler() {
     };
 
     this.draw = function(particles) {
+
+
+        ctx.beginPath();
         for (var i = 0; i < particles.length; i++) {
             var particle = particles[i];
 
@@ -161,8 +164,11 @@ function ParticleHandler() {
             var roundedX = (.5 + particle.posX) << 0;
             var roundedY = (.5 + particle.posY) << 0;
 
-            ctx.fillRect(roundedX, roundedY, 2, 2);            
+            ctx.moveTo(roundedX, roundedY);
+
+            ctx.rect(roundedX, roundedY, 1, 1);
         }
+        ctx.fill();
     };
 
 }

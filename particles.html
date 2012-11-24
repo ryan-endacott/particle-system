@@ -26,6 +26,7 @@ var graviton;
 var gravitons = [];
 var GRAVITONSTRENGTH = .9;
 var particleHandler;
+var obstaclePositions;
 var mouseX;
 var mouseY;
 var leftMouseDown = false;
@@ -42,6 +43,10 @@ Game.run = function () {
 };
 
 Game.start = function () {
+
+    // True if unoccupied.  False if occupied. 
+    // Because 2darray[inbounds][outofbounds] returns false
+    obstaclePositions = get2DArray(width, height, true);
 
     graviton = new Graviton(0, 0, GRAVITONSTRENGTH);
     particleHandler = new ParticleHandler();
@@ -93,7 +98,7 @@ Game.update = function () {
     } 
 
 
-    handleCollisions(particles, obstacles);
+    handleCollisions(particles, obstaclePositions);
 
     particleHandler.update(particles);
 
@@ -111,6 +116,7 @@ Game.draw = function () {
     ctx.fillStyle = 'red';
 
     particleHandler.draw(particles);
+
 
     ctx.fillStyle = 'gray';
 
@@ -193,6 +199,12 @@ function Block(posX, posY, width, height) {
     this.width = width;
     this.height = height;
 
+    // Modify the obstaclePositions that holds all pixels and whether obstructed
+    for (var i = this.posX; i <= this.posX2; i++) {
+        for (var j = this.posY; j <= this.posY2; j++) {
+            obstaclePositions[i][j] = false;
+        }
+    }
 
     this.draw = function (ctx) {
         ctx.fillRect(this.posX, this.posY, this.width, this.height);
@@ -229,32 +241,44 @@ function Graviton(posX, posY, strength) {
 }
 
 
-function handleCollisions(particles, obstacles) {
+
+function handleCollisions(particles, obstaclePositions) {
     for (var i = 0; i < particles.length; i++) {
 
         var particle = particles[i];
 
-        for (var j = 0; j < obstacles.length; j++) {
+        // Round to integers to increase performance
+        var roundedX = (.5 + particle.posX) << 0;
+        var roundedY = (.5 + particle.posY) << 0;
+        var roundedX2 = (.5 + particle.posX + particle.velX) << 0;
+        var roundedY2 = (.5 + particle.posY + particle.velY) << 0;
 
-            var obstacle = obstacles[j];
+
+        try {
 
             // If is going to collide after x-direction move next turn
-            if (checkCollision(particle.posX + particle.velX, particle.posY, obstacle)) {
+            if (!obstaclePositions[roundedX2][roundedY]) {
                 // Reverse and deplete x velocity
                 particle.velX = -particle.velX * .2;
             }
+        } catch (err) {
+            // Particle was out of bounds, so handle 'out of bounds collision'
+            particle.velX = -particle.velX * .2;
+        }
 
+        try {
             // If is going to collide after y-direction move next turn
-            if (checkCollision(particle.posX, particle.posY + particle.velY, obstacle)) {
+            if (!obstaclePositions[roundedX][roundedY2]) {
                 // Reverse and deplete y velocity
                 particle.velY = -particle.velY * .2;
             }
+        } catch (err) {
+            // Particle was out of bounds, so handle 'out of bounds collision'
+            particle.velX = -particle.velX * .2;
         }
+
     }
 
-    function checkCollision(pointX, pointY, obstacle) {
-        return pointX < obstacle.posX2 && pointX > obstacle.posX && pointY < obstacle.posY2 && pointY > obstacle.posY;
-    }
 }
 
 
@@ -314,6 +338,23 @@ function getRandomDecimal(min, max) {
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+// Gets a 2d array filled with default value
+function get2DArray(x, y, defaultValue) {
+
+    x = x > 0 ? x : 0;
+    var arr = [];
+
+    while(x--) {
+        var innerArr = []
+        for (var i = 0; i < y; i++)
+            innerArr.push(defaultValue);
+        arr.push(innerArr);
+    }
+
+    return arr;
+}
+
 
 function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();

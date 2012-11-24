@@ -254,27 +254,17 @@ function handleCollisions(particles, obstaclePositions) {
         var roundedY2 = (.5 + particle.posY + particle.velY) << 0;
 
 
-        try {
 
-            // If is going to collide after x-direction move next turn
-            if (!obstaclePositions[roundedX2][roundedY]) {
-                // Reverse and deplete x velocity
-                particle.velX = -particle.velX * .2;
-            }
-        } catch (err) {
-            // Particle was out of bounds, so handle 'out of bounds collision'
+        // If is going to collide after x-direction move next turn
+        if (!obstaclePositions[roundedX2] || !obstaclePositions[roundedX2][roundedY]) {
+            // Reverse and deplete x velocity
             particle.velX = -particle.velX * .2;
         }
 
-        try {
-            // If is going to collide after y-direction move next turn
-            if (!obstaclePositions[roundedX][roundedY2]) {
-                // Reverse and deplete y velocity
-                particle.velY = -particle.velY * .2;
-            }
-        } catch (err) {
-            // Particle was out of bounds, so handle 'out of bounds collision'
-            particle.velX = -particle.velX * .2;
+        // If is going to collide after y-direction move next turn
+        if (!obstaclePositions[roundedX] || !obstaclePositions[roundedX][roundedY2]) {
+            // Reverse and deplete y velocity
+            particle.velY = -particle.velY * .2;
         }
 
     }

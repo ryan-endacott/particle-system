@@ -88,29 +88,25 @@ Game.update = function () {
     } 
 
 
+    handleCollisions(particles, obstacles);
 
     particleHandler.update(particles);
 
-
-    handleCollisions(particles, obstacles);
 
 };
 
 Game.draw = function () {
     ctx.clearRect(0, 0, width, height);
 
-
     ctx.fillStyle = 'red';
 
     particleHandler.draw(particles);
-
 
     ctx.fillStyle = 'black';
 
     obstacles.forEach(function (obstacle) {
         obstacle.draw(ctx);
     });
-
 
 };
 
@@ -187,11 +183,13 @@ function Block(posX, posY, width, height) {
     this.width = width;
     this.height = height;
 
+
     this.draw = function (ctx) {
         ctx.fillRect(this.posX, this.posY, this.width, this.height);
     };
 }
 
+// Constructor for a graviton
 function Graviton(posX, posY, strength) {
     this.strength = strength;
     this.posX = posX;

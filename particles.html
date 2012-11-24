@@ -23,6 +23,7 @@ var obstacles = [];
 var numParticles = 100;
 var numEmit = 40;
 var graviton;
+var gravitonStrength = .9;
 var particleHandler;
 var mouseX;
 var mouseY;
@@ -41,7 +42,7 @@ Game.run = function () {
 
 Game.start = function () {
 
-    graviton = new Graviton(0, 0, 10, .8);
+    graviton = new Graviton(0, 0, gravitonStrength);
     particleHandler = new ParticleHandler();
 
     for (var i = 0; i < numParticles; i++) {
@@ -76,17 +77,19 @@ Game.update = function () {
         emitParticles(mouseX, mouseY, numEmit, maxVel);
 
 
-    if (count % 10 == 0 && leftMouseDown) {
-        graviton.posX = mouseX;
-        graviton.posY = mouseY;
-    }
+    if (count % 5) {
+        if (leftMouseDown) {
+            graviton.posX = mouseX;
+            graviton.posY = mouseY;
+            graviton.attract(particles);
+        }
+        else
+            slowParticles(particles, .98);
+    } 
+
+
 
     particleHandler.update(particles);
-
-    if (leftMouseDown) 
-        graviton.attract(particles);
-    else 
-        slowParticles(particles, .98);
 
 
     handleCollisions(particles, obstacles);
@@ -189,8 +192,7 @@ function Block(posX, posY, width, height) {
     };
 }
 
-function Graviton(posX, posY, errDist, strength) {
-    this.errDist = errDist;
+function Graviton(posX, posY, strength) {
     this.strength = strength;
     this.posX = posX;
     this.posY = posY;
@@ -203,7 +205,7 @@ function Graviton(posX, posY, errDist, strength) {
             var distX = this.posX - entity.posX;
             var distY = this.posY - entity.posY;
 
-            var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
+            var invSqrt = InvSqrt(distX * distX + distY * distY);
 
 
             var newVelX = entity.velX + this.strength * invSqrt * distX;
@@ -269,6 +271,26 @@ function slowParticles(particles, factor) {
     }
 
 }
+
+
+// Magical inverse square root hack from Quake 3.
+// Slightly faster, why not add it?
+// Source: http://jsperf.com/inverse-square-root/5
+var y = new Float32Array(1);
+var i = new Int32Array(y.buffer);
+
+function InvSqrt(number) {
+   var x2 = number * 0.5;
+   y[0] = number;
+   var threehalfs = 1.5;
+  
+   i[0] = 0x5f3759df - (i[0] >> 1);
+  
+   var number2 = y[0];
+  
+   return number2 * (threehalfs - (x2 * number2 * number2));
+}
+
 
 /**
  * Returns a random number between min and max

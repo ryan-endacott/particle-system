@@ -404,7 +404,7 @@ function runParticleSystem() {
             width: 1200px;
         }
 
-        #info {
+        #sidebar {
             float: right;
             width: 300px; /*container.width - canvas.width*/
         }
@@ -421,13 +421,23 @@ function runParticleSystem() {
 
     <body class="unselectable" onload="runParticleSystem()">
         <div id="container">
-            <div id="info">
-                <h1>Particle System by Ryan Endacott</h1>
-                <p>Number of particles: <label id="numParticlesLabel">0</label></p>
-                <p>FPS: <label id="FPSLabel">30</label>
+            <div id="sidebar">
+                <div id="info">
+                    <h1>Particle System by Ryan Endacott</h1>
+                    <p>Number of particles: <label id="numParticlesLabel">0</label></p>
+                    <p>FPS: <label id="FPSLabel">30</label>
+                </div>
+                <div id="instructions">
+                    <ul>
+                        <li>Hold left click to create a graviton at the mouse.</li>
+                        <li>Hold right click to emit new particles.</li>
+                        <li>Press 1 to create an obstacle.</li>
+                        <li>Press 2 to create a permanent graviton at the mouse.</li>
+                    </ul>
+                </div>
             </div>
           <canvas id="particlesystem" width="800px" height="600px"></canvas>
         </div>
-  </body>
+      </body>
 
-  </html>
+      </html>

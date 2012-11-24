@@ -23,6 +23,7 @@ var obstacles = [];
 var NUMSTARTPARTICLES = 100;
 var NUMEMIT = 40;
 var graviton;
+var gravitons = [];
 var GRAVITONSTRENGTH = .9;
 var particleHandler;
 var mouseX;
@@ -30,7 +31,7 @@ var mouseY;
 var leftMouseDown = false;
 var rightMouseDown = false;
 var count = 0;
-var MAXAGE = 500;
+var MAXAGE = 1000;
 var MAXVEL = 7;
 
 Game.fps = 30;
@@ -78,6 +79,10 @@ Game.update = function () {
 
 
     if (count % 5) {
+
+        for (var i = 0; i < gravitons.length; i++) 
+            gravitons[i].attract(particles);
+
         if (leftMouseDown) {
             graviton.posX = mouseX;
             graviton.posY = mouseY;
@@ -98,11 +103,16 @@ Game.update = function () {
 Game.draw = function () {
     ctx.clearRect(0, 0, width, height);
 
+    ctx.fillStyle = 'black';
+
+    // Black background
+    ctx.fillRect(0, 0, width, height);
+
     ctx.fillStyle = 'red';
 
     particleHandler.draw(particles);
 
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'gray';
 
     obstacles.forEach(function (obstacle) {
         obstacle.draw(ctx);
@@ -351,10 +361,14 @@ function runParticleSystem() {
         });
 
         $(document).keypress(function (evt) {
-            if (evt.which == 49) { // Pressed 1
+            if (evt.which == 49) { // Pressed 1, so create new block
                 var size = 70;
                 var block = new Block(mouseX - size / 2, mouseY - size / 2, size, size);
                 obstacles.push(block);
+            }
+            if (evt.which == 50) { // 2, so create graviton at mouse
+                var grav = new Graviton(mouseX, mouseY, GRAVITONSTRENGTH);
+                gravitons.push(grav);
             }
         });
 

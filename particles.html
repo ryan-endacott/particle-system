@@ -10,6 +10,8 @@
 // Variables to mess with in runParticleSystem() because they require DOM
 var Game = {};
 var canvas;
+var numParticlesLabel;
+var FPSLabel;
 var ctx;
 var width;
 var height;
@@ -54,14 +56,25 @@ Game.start = function () {
     }
 
     setInterval(Game.run, 1000 / Game.fps);
+
+    // Measure FPS
+    var oldCount = count;
+    setInterval(function () {
+        FPSLabel.innerHTML = count - oldCount;
+        oldCount = count;
+    }, 1000);
+    
 }
 
 Game.update = function () {
 
     count++;
 
+    numParticlesLabel.innerHTML = particles.length;
+
     if (rightMouseDown) 
         emitParticles(mouseX, mouseY, numEmit, maxVel);
+
 
     if (count % 10 == 0 && leftMouseDown) {
         graviton.posX = mouseX;
@@ -289,6 +302,8 @@ function getMousePos(canvas, evt) {
 function runParticleSystem() {
 
     canvas = document.getElementById('particlesystem')
+    numParticlesLabel = document.getElementById('numParticlesLabel');
+    FPSLabel = document.getElementById('FPSLabel');
 
     if (canvas.getContext) {
         console.log("Starting particle system...");
@@ -341,10 +356,46 @@ function runParticleSystem() {
 
 
         </script>
+
+        <style>
+        /* Make everything unselectable to fix weird glitch when drag on canvas
+         * highlights stuff 
+         */
+        .unselectable {
+            -moz-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #container {
+            width: 1200px;
+        }
+
+        #info {
+            float: right;
+            width: 300px; /*container.width - canvas.width*/
+        }
+
+        #particlesystem {
+            float: left;
+            width: 800px;
+            height: 600px;
+            border: solid 1px black;
+        }
+        </style>
+
     </head>
 
-    <body onload="runParticleSystem()">
-      <canvas id="particlesystem" width="800" height="600" style="border:solid 1px #000000;"></canvas>
+    <body class="unselectable" onload="runParticleSystem()">
+        <div id="container">
+            <div id="info">
+                <h1>Particle System by Ryan Endacott</h1>
+                <p>Number of particles: <label id="numParticlesLabel">0</label></p>
+                <p>FPS: <label id="FPSLabel">30</label>
+            </div>
+          <canvas id="particlesystem" width="800px" height="600px"></canvas>
+        </div>
   </body>
 
   </html>

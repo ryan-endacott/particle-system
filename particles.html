@@ -49,8 +49,8 @@ Game.start = function () {
 
         var posX = getRandomInt(0, width);
         var posY = getRandomInt(0, height);
-        var velX = getRandomInt(-5, 5);
-        var velY = getRandomInt(-5, 5);
+        var velX = getRandomInt(-maxVel, maxVel);
+        var velY = getRandomInt(-maxVel, maxVel);
 
         var particle = new Particle(posX, posY, velX, velY, maxVel);
         particles[i] = particle;

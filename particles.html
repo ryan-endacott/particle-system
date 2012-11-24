@@ -63,7 +63,7 @@ Game.start = function () {
         FPSLabel.innerHTML = count - oldCount;
         oldCount = count;
     }, 1000);
-    
+
 }
 
 Game.update = function () {
@@ -157,26 +157,21 @@ function Particle(posX, posY, velX, velY, maxVel) {
     this.age = 0;
     this.posX = posX;
     this.posY = posY;
-    this.__defineGetter__('velX', function () {
-        return this.velocityX;
-    });
-    this.__defineSetter__('velX', function (vel) {
-        if (vel > maxVel) this.velocityX = maxVel;
-        else if (vel < -maxVel) this.velocityX = -maxVel;
-        else this.velocityX = vel;
-    })
 
-    this.__defineGetter__('velY', function () {
-        return this.velocityY;
-    });
-    this.__defineSetter__('velY', function (vel) {
-        if (vel > maxVel) this.velocityY = maxVel;
-        else if (vel < -maxVel) this.velocityY = -maxVel;
-        else this.velocityY = vel;
-    })
+    this.setVelX = function (vel) {
+        if (vel > maxVel) this.velX = maxVel;
+        else if (vel < -maxVel) this.velX = -maxVel;
+        else this.velX = vel;
+    };
 
-    this.velX = velX;
-    this.velY = velY;
+    this.setVelY = function (vel) {
+        if (vel > maxVel) this.velY = maxVel;
+        else if (vel < -maxVel) this.velY = -maxVel;
+        else this.velY = vel;
+    };
+
+    this.setVelX(velX);
+    this.setVelY(velY);
 }
 
 
@@ -210,12 +205,15 @@ function Graviton(posX, posY, errDist, strength) {
 
             var invSqrt = 1 / Math.sqrt(distX * distX + distY * distY);
 
-            entity.velX += this.strength * invSqrt * distX;
-            entity.velY += this.strength * invSqrt * distY;
 
-            entity.velX *= getRandomDecimal(.8, 1.2);
-            entity.velY *= getRandomDecimal(.8, 1.2);
+            var newVelX = entity.velX + this.strength * invSqrt * distX;
+            var newVelY = entity.velY + this.strength * invSqrt * distY;
 
+            newVelX *= getRandomDecimal(.8, 1.2);
+            newVelY *= getRandomDecimal(.8, 1.2);
+
+            entity.setVelX(newVelX);
+            entity.setVelY(newVelY);
         }
     };
 }

@@ -198,7 +198,7 @@ function Particle(posX, posY, velX, velY, MAXVEL) {
 
 
 // Constructor for block object
-function Block(posX, posY, width, height) {
+function Block(posX, posY, width, height, canvasWidth, canvasHeight) {
     this.posX = posX;
     this.posY = posY;
     this.posX2 = posX + width;
@@ -207,8 +207,8 @@ function Block(posX, posY, width, height) {
     this.height = height;
 
     // Modify the obstaclePositions that holds all pixels and whether obstructed
-    for (var i = this.posX; i <= this.posX2; i++) {
-        for (var j = this.posY; j <= this.posY2; j++) {
+    for (var i = Math.max(this.posX, 0); i <= Math.min(this.posX2, canvasWidth - 1); i++) {
+        for (var j = Math.max(this.posY, 0); j <= Math.min(this.posY2, canvasHeight - 1); j++) {
             obstaclePositions[i][j] = false;
         }
     }
@@ -401,7 +401,7 @@ function runParticleSystem() {
         $(document).keypress(function (evt) {
             if (evt.which == 49) { // Pressed 1, so create new block
                 var size = 70;
-                var block = new Block(mouseX - size / 2, mouseY - size / 2, size, size);
+                var block = new Block(mouseX - size / 2, mouseY - size / 2, size, size, width, height);
                 obstacles.push(block);
             }
             if (evt.which == 50) { // 2, so create graviton at mouse

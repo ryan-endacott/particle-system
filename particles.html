@@ -85,13 +85,14 @@ Game.update = function () {
 
     if (count % 5) {
 
-        for (var i = 0; i < gravitons.length; i++) 
-            gravitons[i].attract(particles);
-
         if (leftMouseDown) {
             graviton.posX = mouseX;
             graviton.posY = mouseY;
             graviton.attract(particles);
+        }
+        else if (gravitons.length > 0) {
+            for (var i = 0; i < gravitons.length; i++) 
+                gravitons[i].attract(particles);
         }
         else
             slowParticles(particles, .98);
@@ -469,7 +470,7 @@ function runParticleSystem() {
                         <li>Hold left click to create a graviton at the mouse.</li>
                         <li>Hold right click to emit new particles.</li>
                         <li>Press 1 to create an obstacle.</li>
-                        <li>Press 2 to create a permanent graviton at the mouse.</li>
+                        <li>Press 2 to create a permanent graviton at the mouse.  Note:  Your graviton will turn off all others.</li>
                     </ul>
                 </div>
             </div>

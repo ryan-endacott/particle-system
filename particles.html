@@ -10,9 +10,11 @@
 // Variables to mess with in runParticleSystem() because they require DOM
 var Game = {};
 var canvas;
+var canvasDraw;
 var numParticlesLabel;
 var FPSLabel;
 var ctx;
+var ctxDraw;
 var width;
 var height;
 
@@ -376,6 +378,8 @@ function runParticleSystem() {
         ctx = canvas.getContext('2d');
         width = canvas.width;
         height = canvas.height;
+        canvasDraw = document.getElementById('drawingcanvas');
+        ctxDraw = canvasDraw.getContext('2d');
 
         // Event handlers to provide updated mouse stuff
         // Required DOM
@@ -453,6 +457,10 @@ function runParticleSystem() {
             height: 600px;
             border: solid 1px black;
         }
+
+        #drawingcanvas {
+            display: none;
+        }
         </style>
 
     </head>
@@ -475,6 +483,7 @@ function runParticleSystem() {
                 </div>
             </div>
           <canvas id="particlesystem" width="800px" height="600px"></canvas>
+          <canvas id="drawingcanvas" width="800px" height="600px"></canvas>
         </div>
       </body>
 

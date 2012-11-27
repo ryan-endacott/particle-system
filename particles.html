@@ -28,6 +28,7 @@ var graviton;
 var gravitons = [];
 var GRAVITONSTRENGTH = .9;
 var particleHandler;
+var particleImage;
 var obstaclePositions;
 var mouseX;
 var mouseY;
@@ -116,11 +117,13 @@ Game.draw = function () {
     // Black background
     ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = 'red';
-
+    ctx.fillStyle = 'orange';
+    
+    ctx.globalCompositeOperation = 'lighter';
     particleHandler.draw(particles);
 
 
+    ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'gray';
 
     obstacles.forEach(function (obstacle) {
@@ -159,7 +162,6 @@ function ParticleHandler() {
     this.draw = function(particles) {
 
 
-        ctx.beginPath();
         for (var i = 0; i < particles.length; i++) {
             var particle = particles[i];
 
@@ -167,11 +169,10 @@ function ParticleHandler() {
             var roundedX = (.5 + particle.posX) << 0;
             var roundedY = (.5 + particle.posY) << 0;
 
-            ctx.moveTo(roundedX, roundedY);
 
-            ctx.rect(roundedX, roundedY, 1, 1);
+            // Subtract so that the center of image is actual particle position
+            ctx.drawImage(particleImage, roundedX - 3, roundedY - 3);
         }
-        ctx.fill();
     };
 
 }
@@ -372,6 +373,7 @@ function runParticleSystem() {
     canvas = document.getElementById('particlesystem')
     numParticlesLabel = document.getElementById('numParticlesLabel');
     FPSLabel = document.getElementById('FPSLabel');
+    particleImage = document.getElementById('particleImage');
 
     if (canvas.getContext) {
         console.log("Starting particle system...");
@@ -484,6 +486,7 @@ function runParticleSystem() {
             </div>
           <canvas id="particlesystem" width="800px" height="600px"></canvas>
           <canvas id="drawingcanvas" width="800px" height="600px"></canvas>
+          <img id="particleImage" style="display:none;" src="particle5.png">
         </div>
       </body>
 

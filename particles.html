@@ -180,8 +180,8 @@ $(document).ready( function() {
 
             for (var i = 0; i < particles.length; i++) {
                 var particle = particles[i];
-                particle.posX += particle.velX * deltaTime;
-                particle.posY += particle.velY * deltaTime;
+                particle.posX += particle.velX * deltaTime * getRandomDecimal(.9, 1.1);
+                particle.posY += particle.velY * deltaTime * getRandomDecimal(.9, 1.1);
 
                 // Slow moving particles die faster
                 var avgVel = (Math.abs(particle.velX) + Math.abs(particle.velY)) / 2;

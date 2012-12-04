@@ -6,88 +6,124 @@
     <script>
 
 
+$(document).ready( function() {
 
-// Variables to mess with in runParticleSystem() because they require DOM
-var Game = {};
-var canvas;
-var canvasDraw;
-var numParticlesLabel;
-var FPSLabel;
-var ctx;
-var ctxDraw;
-var width;
-var height;
-
-
-// Variables for whole game
-var particles = [];
-var obstacles = [];
-var NUMSTARTPARTICLES = 100;
-var NUMEMIT = 40;
-var graviton;
-var gravitons = [];
-var GRAVITONSTRENGTH = .9;
-var particleHandler;
-var particleImage;
-var obstaclePositions;
-var mouseX;
-var mouseY;
-var leftMouseDown = false;
-var rightMouseDown = false;
-var count = 0;
-var MAXAGE = 1000;
-var MAXVEL = 7;
-
-Game.fps = 30;
-
-Game.run = function () {
-    Game.update();
-    Game.draw();
-};
-
-Game.start = function () {
-
-    // True if unoccupied.  False if occupied. 
-    // Because 2darray[inbounds][outofbounds] returns false
-    obstaclePositions = get2DArray(width, height, true);
-
-    graviton = new Graviton(0, 0, GRAVITONSTRENGTH);
-    particleHandler = new ParticleHandler();
-
-    for (var i = 0; i < NUMSTARTPARTICLES; i++) {
-
-        var posX = getRandomInt(0, width);
-        var posY = getRandomInt(0, height);
-        var velX = getRandomInt(-MAXVEL, MAXVEL);
-        var velY = getRandomInt(-MAXVEL, MAXVEL);
-
-        var particle = new Particle(posX, posY, velX, velY, MAXVEL);
-        particles[i] = particle;
+    // Get requestAnimationFrame stuff source:  https://gist.github.com/1649729
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
+                                   || window[vendors[x]+'CancelRequestAnimationFrame'];
     }
 
-    setInterval(Game.run, 1000 / Game.fps);
-
-    // Measure FPS
-    var oldCount = count;
-    setInterval(function () {
-        FPSLabel.innerHTML = count - oldCount;
-        oldCount = count;
-    }, 1000);
-
-}
-
-Game.update = function () {
-
-    count++;
-
-    numParticlesLabel.innerHTML = particles.length;
-
-    if (rightMouseDown) 
-        emitParticles(mouseX, mouseY, NUMEMIT, MAXVEL);
+    var animationId = undefined;
 
 
-    if (count % 5) {
+    // Variables for whole game
+    var Game = {};
+    var canvas = document.getElementById('particlesystem');
+    var canvasDraw;
+    var numParticlesLabel = document.getElementById('numParticlesLabel');
+    var FPSLabel = document.getElementById('FPSLabel');
+    var ctx;
+    var ctxDraw;
+    var width;
+    var height;
 
+
+    var particles = [];
+    var obstacles = [];
+    var NUMSTARTPARTICLES = 100;
+    var NUMEMIT = 20;
+    var graviton;
+    var gravitons = [];
+    var GRAVITONSTRENGTH = 1;
+    var particleHandler;
+    var particleImage = document.getElementById('particleImage');
+    var obstaclePositions;
+    var mouseX;
+    var mouseY;
+    var leftMouseDown = false;
+    var rightMouseDown = false;
+
+    var count = 0;
+    var MAXAGE = 1000;
+    var MAXVEL = 7;
+    var FPSFACTOR = 1000/60; 
+    var timerId;
+
+    var curTime = new Date().getTime();
+    var oldTime = curTime;
+
+    Game.fps = 30;
+
+    Game.run = function () {
+
+        count++;
+
+        curTime = new Date().getTime();
+        var deltaTime = curTime - oldTime;
+        oldTime = curTime;
+
+        Game.update(deltaTime);
+        Game.draw();
+
+        animationId = requestAnimationFrame(Game.run);
+
+    };
+
+    Game.start = function () {
+
+        // Used for restart
+        if (animationId)
+            cancelAnimationFrame(animationId);
+        animationId = undefined;
+        particles = [];
+        gravitons = [];
+        obstacles = [];
+        count = 0;
+
+
+        // True if unoccupied.  False if occupied. 
+        // Because 2darray[inbounds][outofbounds] returns false
+        obstaclePositions = get2DArray(width, height, true);
+
+        graviton = new Graviton(0, 0, GRAVITONSTRENGTH);
+        particleHandler = new ParticleHandler();
+
+        for (var i = 0; i < NUMSTARTPARTICLES; i++) {
+
+            var posX = getRandomInt(0, width);
+            var posY = getRandomInt(0, height);
+            var velX = getRandomInt(-MAXVEL, MAXVEL);
+            var velY = getRandomInt(-MAXVEL, MAXVEL);
+
+            var particle = new Particle(posX, posY, velX, velY, MAXVEL);
+            particles[i] = particle;
+        }
+
+        animationId = requestAnimationFrame(Game.run);
+
+        // Measure FPS
+        var oldCount = count;
+        setInterval(function () {
+            FPSLabel.innerHTML = (count - oldCount) << 0;
+            oldCount = count;
+        }, 1000);
+
+    }
+
+    Game.update = function (deltaTime) {
+
+
+        numParticlesLabel.innerHTML = particles.length;
+
+        if (rightMouseDown) 
+            emitParticles(mouseX, mouseY, NUMEMIT, MAXVEL, deltaTime);
+
+
+
+        // Left mouse graviton takes priority, then others, then slowing
         if (leftMouseDown) {
             graviton.posX = mouseX;
             graviton.posY = mouseY;
@@ -99,281 +135,283 @@ Game.update = function () {
         }
         else
             slowParticles(particles, .98);
-    } 
 
 
-    handleCollisions(particles, obstaclePositions);
+        handleCollisions(particles, obstaclePositions);
 
-    particleHandler.update(particles);
+        particleHandler.update(particles, deltaTime);
 
-
-};
-
-Game.draw = function () {
-    ctx.clearRect(0, 0, width, height);
-
-    ctx.fillStyle = 'black';
-
-    // Black background
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = 'orange';
-    
-    ctx.globalCompositeOperation = 'lighter';
-    particleHandler.draw(particles);
-
-
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'gray';
-
-    obstacles.forEach(function (obstacle) {
-        obstacle.draw(ctx);
-    });
-
-};
-
-// Particle wrapper to do updating and drawing to (hopefully) increase
-// performance and limit function calls
-function ParticleHandler() {
-    this.update = function(particles) {
-
-        var deadParticles = [];
-
-        for (var i = 0; i < particles.length; i++) {
-            var particle = particles[i];
-            particle.posX += particle.velX;
-            particle.posY += particle.velY;
-
-            // Slow moving particles die faster
-            var avgVel = (Math.abs(particle.velX) + Math.abs(particle.velY)) / 2;
-            particle.age += 1.5 / avgVel;
-            particle.age += .3;
-
-            // Remove if older than max
-            if (particle.age > MAXAGE)
-                deadParticles.push(i);
-        }
-
-        for (var i = deadParticles.length - 1; i >= 0; i--)
-            particles.splice(i, 1);
 
     };
 
-    this.draw = function(particles) {
+    Game.draw = function () {
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = 'black';
+
+        // Black background
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = 'orange';
+        
+        // Lighter to combine the image colors to form the glowing inner spots
+        ctx.globalCompositeOperation = 'lighter';
+        particleHandler.draw(particles);
 
 
+        // Reset to on top of
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'gray';
+
+        obstacles.forEach(function (obstacle) {
+            obstacle.draw(ctx);
+        });
+
+    };
+
+    // Particle wrapper to do updating and drawing to (hopefully) increase
+    // performance and limit function calls
+    function ParticleHandler() {
+        this.update = function(particles, deltaTime) {
+
+            deltaTime /= FPSFACTOR;
+
+            var deadParticles = [];
+
+            for (var i = 0; i < particles.length; i++) {
+                var particle = particles[i];
+                particle.posX += particle.velX * deltaTime;
+                particle.posY += particle.velY * deltaTime;
+
+                // Slow moving particles die faster
+                var avgVel = (Math.abs(particle.velX) + Math.abs(particle.velY)) / 2;
+                particle.age += 1.5 / avgVel * deltaTime;
+                particle.age += .3 * deltaTime;
+
+                // Remove if older than max
+                if (particle.age > MAXAGE)
+                    deadParticles.push(i);
+            }
+
+            for (var i = deadParticles.length - 1; i >= 0; i--)
+                particles.splice(i, 1);
+
+        };
+
+        this.draw = function(particles) {
+
+
+            for (var i = 0; i < particles.length; i++) {
+                var particle = particles[i];
+
+                // Round to integers to increase performance
+                var roundedX = (.5 + particle.posX) << 0;
+                var roundedY = (.5 + particle.posY) << 0;
+
+
+                // Subtract so that the center of image is actual particle position
+                ctx.drawImage(particleImage, roundedX - 3, roundedY - 3);
+            }
+        };
+
+    }
+
+    // Constructor for particle object
+    function Particle(posX, posY, velX, velY, MAXVEL) {
+        this.age = 0;
+        this.posX = posX;
+        this.posY = posY;
+
+        this.setVelX = function (vel) {
+            if (vel > MAXVEL) this.velX = MAXVEL;
+            else if (vel < -MAXVEL) this.velX = -MAXVEL;
+            else this.velX = vel;
+        };
+
+        this.setVelY = function (vel) {
+            if (vel > MAXVEL) this.velY = MAXVEL;
+            else if (vel < -MAXVEL) this.velY = -MAXVEL;
+            else this.velY = vel;
+        };
+
+        this.setVelX(velX);
+        this.setVelY(velY);
+    }
+
+
+    // Constructor for block object
+    function Block(posX, posY, width, height, canvasWidth, canvasHeight) {
+        this.posX = posX;
+        this.posY = posY;
+        this.posX2 = posX + width;
+        this.posY2 = posY + height;
+        this.width = width;
+        this.height = height;
+
+        // Modify the obstaclePositions that holds all pixels and whether obstructed
+        for (var i = Math.max(this.posX, 0); i <= Math.min(this.posX2, canvasWidth - 1); i++) {
+            for (var j = Math.max(this.posY, 0); j <= Math.min(this.posY2, canvasHeight - 1); j++) {
+                obstaclePositions[i][j] = false;
+            }
+        }
+
+        this.draw = function (ctx) {
+            ctx.fillRect(this.posX, this.posY, this.width, this.height);
+        };
+    }
+
+    // Constructor for a graviton
+    function Graviton(posX, posY, strength) {
+        this.strength = strength;
+        this.posX = posX;
+        this.posY = posY;
+
+        this.attract = function (entities) {
+
+            for (var i = 0; i < entities.length; i++) {
+                var entity = entities[i];
+
+                var distX = this.posX - entity.posX;
+                var distY = this.posY - entity.posY;
+
+                var invSqrt = InvSqrt(distX * distX + distY * distY);
+
+
+                var newVelX = entity.velX + this.strength * invSqrt * distX;
+                var newVelY = entity.velY + this.strength * invSqrt * distY;
+
+                newVelX *= getRandomDecimal(.8, 1.2);
+                newVelY *= getRandomDecimal(.8, 1.2);
+
+                entity.setVelX(newVelX);
+                entity.setVelY(newVelY);
+            }
+        };
+    }
+
+
+
+    function handleCollisions(particles, obstaclePositions) {
         for (var i = 0; i < particles.length; i++) {
+
             var particle = particles[i];
 
             // Round to integers to increase performance
             var roundedX = (.5 + particle.posX) << 0;
             var roundedY = (.5 + particle.posY) << 0;
-
-
-            // Subtract so that the center of image is actual particle position
-            ctx.drawImage(particleImage, roundedX - 3, roundedY - 3);
-        }
-    };
-
-}
-
-// Constructor for particle object
-function Particle(posX, posY, velX, velY, MAXVEL) {
-    this.age = 0;
-    this.posX = posX;
-    this.posY = posY;
-
-    this.setVelX = function (vel) {
-        if (vel > MAXVEL) this.velX = MAXVEL;
-        else if (vel < -MAXVEL) this.velX = -MAXVEL;
-        else this.velX = vel;
-    };
-
-    this.setVelY = function (vel) {
-        if (vel > MAXVEL) this.velY = MAXVEL;
-        else if (vel < -MAXVEL) this.velY = -MAXVEL;
-        else this.velY = vel;
-    };
-
-    this.setVelX(velX);
-    this.setVelY(velY);
-}
-
-
-// Constructor for block object
-function Block(posX, posY, width, height, canvasWidth, canvasHeight) {
-    this.posX = posX;
-    this.posY = posY;
-    this.posX2 = posX + width;
-    this.posY2 = posY + height;
-    this.width = width;
-    this.height = height;
-
-    // Modify the obstaclePositions that holds all pixels and whether obstructed
-    for (var i = Math.max(this.posX, 0); i <= Math.min(this.posX2, canvasWidth - 1); i++) {
-        for (var j = Math.max(this.posY, 0); j <= Math.min(this.posY2, canvasHeight - 1); j++) {
-            obstaclePositions[i][j] = false;
-        }
-    }
-
-    this.draw = function (ctx) {
-        ctx.fillRect(this.posX, this.posY, this.width, this.height);
-    };
-}
-
-// Constructor for a graviton
-function Graviton(posX, posY, strength) {
-    this.strength = strength;
-    this.posX = posX;
-    this.posY = posY;
-
-    this.attract = function (entities) {
-
-        for (var i = 0; i < entities.length; i++) {
-            var entity = entities[i];
-
-            var distX = this.posX - entity.posX;
-            var distY = this.posY - entity.posY;
-
-            var invSqrt = InvSqrt(distX * distX + distY * distY);
-
-
-            var newVelX = entity.velX + this.strength * invSqrt * distX;
-            var newVelY = entity.velY + this.strength * invSqrt * distY;
-
-            newVelX *= getRandomDecimal(.8, 1.2);
-            newVelY *= getRandomDecimal(.8, 1.2);
-
-            entity.setVelX(newVelX);
-            entity.setVelY(newVelY);
-        }
-    };
-}
+            var roundedX2 = (.5 + particle.posX + particle.velX) << 0;
+            var roundedY2 = (.5 + particle.posY + particle.velY) << 0;
 
 
 
-function handleCollisions(particles, obstaclePositions) {
-    for (var i = 0; i < particles.length; i++) {
+            // If particle will collide after x move
+            if (!obstaclePositions[roundedX2] || !obstaclePositions[roundedX2][roundedY]) {
+                // Reverse and deplete x velocity
+                particle.velX = -particle.velX * .2;
+            }
 
-        var particle = particles[i];
+            // If particle will collide after y move
+            if (!obstaclePositions[roundedX] || !obstaclePositions[roundedX][roundedY2]) {
+                // Reverse and deplete y velocity
+                particle.velY = -particle.velY * .2;
+            }
 
-        // Round to integers to increase performance
-        var roundedX = (.5 + particle.posX) << 0;
-        var roundedY = (.5 + particle.posY) << 0;
-        var roundedX2 = (.5 + particle.posX + particle.velX) << 0;
-        var roundedY2 = (.5 + particle.posY + particle.velY) << 0;
-
-
-
-        // If is going to collide after x-direction move next turn
-        if (!obstaclePositions[roundedX2] || !obstaclePositions[roundedX2][roundedY]) {
-            // Reverse and deplete x velocity
-            particle.velX = -particle.velX * .2;
-        }
-
-        // If is going to collide after y-direction move next turn
-        if (!obstaclePositions[roundedX] || !obstaclePositions[roundedX][roundedY2]) {
-            // Reverse and deplete y velocity
-            particle.velY = -particle.velY * .2;
         }
 
     }
 
-}
 
+    function emitParticles(posX, posY, num, MAXVEL, deltaTime) {
 
-function emitParticles(posX, posY, num, MAXVEL) {
-    for (var i = 0; i < num; i++) {
+        num *= deltaTime / FPSFACTOR;
 
-        var velX = getRandomDecimal(-MAXVEL, MAXVEL);
-        var velY = getRandomDecimal(-MAXVEL, MAXVEL);
-        var p = new Particle(posX, posY, velX, velY, MAXVEL);
-        particles.push(p);
+        for (var i = 0; i < num; i++) {
 
-    }
-}
+            var newVel = getRandomDecimal(MAXVEL - 1.5, MAXVEL + 1.5);
 
-function slowParticles(particles, factor) {
+            var velX = getRandomDecimal(-newVel, newVel);
+            var velY = getRandomDecimal(-newVel, newVel);
+            var p = new Particle(posX, posY, velX, velY, newVel);
+            particles.push(p);
 
-    for (var i = 0; i < particles.length; i++) {
-
-        var particle = particles[i];
-        particle.velX *= factor;
-        particle.velY *= factor;
+        }
     }
 
-}
+    function slowParticles(particles, factor) {
 
+        for (var i = 0; i < particles.length; i++) {
 
-// Magical inverse square root hack from Quake 3.
-// Slightly faster, why not add it?
-// Source: http://jsperf.com/inverse-square-root/5
-var y = new Float32Array(1);
-var i = new Int32Array(y.buffer);
+            var particle = particles[i];
+            particle.velX *= factor;
+            particle.velY *= factor;
+        }
 
-function InvSqrt(number) {
-   var x2 = number * 0.5;
-   y[0] = number;
-   var threehalfs = 1.5;
-  
-   i[0] = 0x5f3759df - (i[0] >> 1);
-  
-   var number2 = y[0];
-  
-   return number2 * (threehalfs - (x2 * number2 * number2));
-}
-
-
-/**
- * Returns a random number between min and max
- */
-function getRandomDecimal(min, max) {
-    return Math.random() * (max - min) + min;
-}
-
-/**
- * Returns a random integer between min and max
- * Using Math.round() will give you a non-uniform distribution!
- */
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// Gets a 2d array filled with default value
-function get2DArray(x, y, defaultValue) {
-
-    x = x > 0 ? x : 0;
-    var arr = [];
-
-    while(x--) {
-        var innerArr = []
-        for (var i = 0; i < y; i++)
-            innerArr.push(defaultValue);
-        arr.push(innerArr);
     }
 
-    return arr;
-}
+
+    // Magical inverse square root hack from Quake 3.
+    // Slightly faster, why not add it?
+    // Source: http://jsperf.com/inverse-square-root/5
+    var y = new Float32Array(1);
+    var i = new Int32Array(y.buffer);
+
+    function InvSqrt(number) {
+       var x2 = number * 0.5;
+       y[0] = number;
+       var threehalfs = 1.5;
+      
+       i[0] = 0x5f3759df - (i[0] >> 1);
+      
+       var number2 = y[0];
+      
+       return number2 * (threehalfs - (x2 * number2 * number2));
+    }
 
 
-function getMousePos(canvas, evt) {
-    var rect = canvas.getBoundingClientRect();
-    return {
-        x: evt.clientX - rect.left,
-        y: evt.clientY - rect.top
-    };
-}
+    // Source of random functions:  
+    // http://stackoverflow.com/questions/1527803/generating-random-numbers-in-javascript-in-a-specific-range
+    /**
+     * Returns a random number between min and max
+     */
+    function getRandomDecimal(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    /**
+     * Returns a random integer between min and max
+     * Using Math.round() will give you a non-uniform distribution!
+     */
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
 
+    // Gets a 2d array filled with default value
+    function get2DArray(x, y, defaultValue) {
+
+        x = x > 0 ? x : 0;
+        var arr = [];
+
+        while(x--) {
+            var innerArr = []
+            for (var i = 0; i < y; i++)
+                innerArr.push(defaultValue);
+            arr.push(innerArr);
+        }
+
+        return arr;
+    }
 
 
+    function getMousePos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
 
-function runParticleSystem() {
 
-    canvas = document.getElementById('particlesystem')
-    numParticlesLabel = document.getElementById('numParticlesLabel');
-    FPSLabel = document.getElementById('FPSLabel');
-    particleImage = document.getElementById('particleImage');
 
     if (canvas.getContext) {
         console.log("Starting particle system...");
@@ -414,6 +452,10 @@ function runParticleSystem() {
                 var grav = new Graviton(mouseX, mouseY, GRAVITONSTRENGTH);
                 gravitons.push(grav);
             }
+            if (evt.which == 114) { // r, so restart
+                console.log('Restarting...');
+                Game.start();
+            }
         });
 
         window.oncontextmenu = function () {
@@ -428,8 +470,8 @@ function runParticleSystem() {
         canvas.innerHTML = "Sorry, the particle system will not work with your browser.";
     }
     
-}
 
+});
 
         </script>
 
@@ -467,7 +509,7 @@ function runParticleSystem() {
 
     </head>
 
-    <body class="unselectable" onload="runParticleSystem()">
+    <body class="unselectable">
         <div id="container">
             <div id="sidebar">
                 <div id="info">
@@ -481,6 +523,7 @@ function runParticleSystem() {
                         <li>Hold right click to emit new particles.</li>
                         <li>Press 1 to create an obstacle.</li>
                         <li>Press 2 to create a permanent graviton at the mouse.  Note:  Your graviton will turn off all others.</li>
+                        <li>Press r to reset the simulation</li>
                     </ul>
                 </div>
             </div>

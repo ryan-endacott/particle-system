@@ -8,7 +8,7 @@
 
 $(document).ready( function() {
 
-    // Get requestAnimationFrame stuff source:  https://gist.github.com/1649729
+    // Get requestAnimationFrame stuff.   Source:  https://gist.github.com/1649729
     var vendors = ['ms', 'moz', 'webkit', 'o'];
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
@@ -47,15 +47,17 @@ $(document).ready( function() {
     var rightMouseDown = false;
 
     var count = 0;
-    var MAXAGE = 1000;
+    var MAXAGE = 10000;
     var MAXVEL = 7;
-    var FPSFACTOR = 1000/60; 
+
+    // Used to make variables have more or less the same effect as 
+    // Before switch to requestAnimationFrame
+    var FPSFACTOR = 1000/30;  
     var timerId;
 
     var curTime = new Date().getTime();
     var oldTime = curTime;
 
-    Game.fps = 30;
 
     Game.run = function () {
 
@@ -185,7 +187,7 @@ $(document).ready( function() {
 
                 // Slow moving particles die faster
                 var avgVel = (Math.abs(particle.velX) + Math.abs(particle.velY)) / 2;
-                particle.age += 1.5 / avgVel * deltaTime;
+                particle.age += 1.4 / avgVel * deltaTime;
                 particle.age += .3 * deltaTime;
 
                 // Remove if older than max
@@ -193,13 +195,14 @@ $(document).ready( function() {
                     deadParticles.push(i);
             }
 
+            // Go backward so indices don't get messed up
             for (var i = deadParticles.length - 1; i >= 0; i--)
                 particles.splice(i, 1);
 
         };
 
-        this.draw = function(particles) {
 
+        this.draw = function(particles) {
 
             for (var i = 0; i < particles.length; i++) {
                 var particle = particles[i];
@@ -307,13 +310,13 @@ $(document).ready( function() {
             // If particle will collide after x move
             if (!obstaclePositions[roundedX2] || !obstaclePositions[roundedX2][roundedY]) {
                 // Reverse and deplete x velocity
-                particle.velX = -particle.velX * .2;
+                particle.velX = -particle.velX * .3;
             }
 
             // If particle will collide after y move
             if (!obstaclePositions[roundedX] || !obstaclePositions[roundedX][roundedY2]) {
                 // Reverse and deplete y velocity
-                particle.velY = -particle.velY * .2;
+                particle.velY = -particle.velY * .3;
             }
 
         }
@@ -327,10 +330,12 @@ $(document).ready( function() {
 
         for (var i = 0; i < num; i++) {
 
+            // Vary min and max velocities for new particles
             var newVel = getRandomDecimal(MAXVEL - 1.5, MAXVEL + 1.5);
 
             var velX = getRandomDecimal(-newVel, newVel);
             var velY = getRandomDecimal(-newVel, newVel);
+
             var p = new Particle(posX, posY, velX, velY, newVel);
             particles.push(p);
 
@@ -403,6 +408,7 @@ $(document).ready( function() {
     }
 
 
+    // Get mouse position from a mouse move event
     function getMousePos(canvas, evt) {
         var rect = canvas.getBoundingClientRect();
         return {
@@ -413,6 +419,7 @@ $(document).ready( function() {
 
 
 
+    // If canvas is supported
     if (canvas.getContext) {
         console.log("Starting particle system...");
         ctx = canvas.getContext('2d');
@@ -422,7 +429,6 @@ $(document).ready( function() {
         ctxDraw = canvasDraw.getContext('2d');
 
         // Event handlers to provide updated mouse stuff
-        // Required DOM
         canvas.addEventListener('mousemove', function (evt) {
             var mousePos = getMousePos(canvas, evt);
             mouseX = mousePos.x;
@@ -442,6 +448,7 @@ $(document).ready( function() {
             else if (which == 3) rightMouseDown = false;
         });
 
+        // Handle keypresses
         $(document).keypress(function (evt) {
             if (evt.which == 49) { // Pressed 1, so create new block
                 var size = 70;
@@ -458,8 +465,9 @@ $(document).ready( function() {
             }
         });
 
+        // cancel context menu
         window.oncontextmenu = function () {
-            return false; // cancel context menu
+            return false; 
         }
 
         // Start the darn thing!
@@ -523,7 +531,7 @@ $(document).ready( function() {
                         <li>Hold right click to emit new particles.</li>
                         <li>Press 1 to create an obstacle.</li>
                         <li>Press 2 to create a permanent graviton at the mouse.  Note:  Your graviton will turn off all others.</li>
-                        <li>Press r to reset the simulation</li>
+                        <li>Press r to reset the simulation.</li>
                     </ul>
                 </div>
             </div>

@@ -67,7 +67,7 @@ $(document).ready( function() {
         var deltaTime = curTime - oldTime;
         oldTime = curTime;
 
-        Game.update(deltaTime);
+        Game.update(deltaTime / FPSFACTOR);
         Game.draw();
 
         animationId = requestAnimationFrame(Game.run);
@@ -136,7 +136,7 @@ $(document).ready( function() {
                 gravitons[i].attract(particles);
         }
         else
-            slowParticles(particles, .98);
+            slowParticles(particles, .99);
 
 
         handleCollisions(particles, obstaclePositions);
@@ -175,8 +175,6 @@ $(document).ready( function() {
     // performance and limit function calls
     function ParticleHandler() {
         this.update = function(particles, deltaTime) {
-
-            deltaTime /= FPSFACTOR;
 
             var deadParticles = [];
 
@@ -310,13 +308,13 @@ $(document).ready( function() {
             // If particle will collide after x move
             if (!obstaclePositions[roundedX2] || !obstaclePositions[roundedX2][roundedY]) {
                 // Reverse and deplete x velocity
-                particle.velX = -particle.velX * .3;
+                particle.velX = -particle.velX * .2;
             }
 
             // If particle will collide after y move
             if (!obstaclePositions[roundedX] || !obstaclePositions[roundedX][roundedY2]) {
                 // Reverse and deplete y velocity
-                particle.velY = -particle.velY * .3;
+                particle.velY = -particle.velY * .2;
             }
 
         }
@@ -326,7 +324,7 @@ $(document).ready( function() {
 
     function emitParticles(posX, posY, num, MAXVEL, deltaTime) {
 
-        num *= deltaTime / FPSFACTOR;
+        num *= deltaTime; 
 
         for (var i = 0; i < num; i++) {
 

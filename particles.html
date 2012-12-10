@@ -25,10 +25,13 @@ $(document).ready( function() {
     var canvasDraw;
     var numParticlesLabel = document.getElementById('numParticlesLabel');
     var FPSLabel = document.getElementById('FPSLabel');
+    var fastLabel = document.getElementById('fastLabel');
     var ctx;
     var ctxDraw;
     var width;
     var height;
+    var fastMode = false;
+    var particleDrawComposite = 'lighter';
 
 
     var particles = [];
@@ -155,9 +158,9 @@ $(document).ready( function() {
         ctx.fillRect(0, 0, width, height);
 
         ctx.fillStyle = 'orange';
-        
         // Lighter to combine the image colors to form the glowing inner spots
-        ctx.globalCompositeOperation = 'lighter';
+        // Otherwise draw squares like normal
+        ctx.globalCompositeOperation = particleDrawComposite;
         particleHandler.draw(particles);
 
 
@@ -174,7 +177,7 @@ $(document).ready( function() {
     // Particle wrapper to do updating and drawing to (hopefully) increase
     // performance and limit function calls
     function ParticleHandler() {
-        this.update = function(particles, deltaTime) {
+        this.update = function(particles, deltaTime, fastMode) {
 
             var deadParticles = [];
 
@@ -200,21 +203,53 @@ $(document).ready( function() {
         };
 
 
-        this.draw = function(particles) {
-
-            for (var i = 0; i < particles.length; i++) {
-                var particle = particles[i];
-
-                // Round to integers to increase performance
-                var roundedX = (.5 + particle.posX) << 0;
-                var roundedY = (.5 + particle.posY) << 0;
+        // Draw square particles if fastmode is on
+        if (fastMode) {
 
 
-                // Subtract so that the center of image is actual particle position
-                ctx.drawImage(particleImage, roundedX - 3, roundedY - 3);
-            }
-        };
+            this.draw = function(particles) {
 
+                ctx.beginPath();
+
+                for (var i = 0; i < particles.length; i++) {
+                    var particle = particles[i];
+
+                    // Round to integers to increase performance
+                    var roundedX = (.5 + particle.posX) << 0;
+                    var roundedY = (.5 + particle.posY) << 0;
+
+
+                    ctx.moveTo(roundedX, roundedY);
+
+                    ctx.rect(roundedX, roundedY, 1, 1);
+                }
+
+                ctx.fill();
+            };
+
+
+        // Otherwise draw images
+        }
+        else {
+
+
+            this.draw = function(particles) {
+
+                for (var i = 0; i < particles.length; i++) {
+                    var particle = particles[i];
+
+                    // Round to integers to increase performance
+                    var roundedX = (.5 + particle.posX) << 0;
+                    var roundedY = (.5 + particle.posY) << 0;
+
+
+                    // Subtract so that the center of image is actual particle position
+                    ctx.drawImage(particleImage, roundedX - 3, roundedY - 3);
+                }
+            };
+
+
+        }
     }
 
     // Constructor for particle object
@@ -457,6 +492,34 @@ $(document).ready( function() {
                 var grav = new Graviton(mouseX, mouseY, GRAVITONSTRENGTH);
                 gravitons.push(grav);
             }
+            if (evt.which == 102) { // f, so toggle fastMode
+
+                fastMode = !fastMode;
+
+                if (fastMode) {
+
+                    fastLabel.innerHTML = 'on';
+
+                    // We can handle more so why not emit a few more?
+                    NUMEMIT = 50;
+
+                    // Set composite operation
+                    particleDrawComposite = 'source-over';
+                }
+                else {
+
+                    fastLabel.innerHTML = 'off';
+
+                    // Set numemit lower
+                    NUMEMIT = 20;
+
+                    // Set composite
+                    particleDrawComposite = 'lighter';
+                }
+
+                console.log('Fast mode toggled, restarting...');
+                Game.start();
+            }
             if (evt.which == 114) { // r, so restart
                 console.log('Restarting...');
                 Game.start();
@@ -521,7 +584,8 @@ $(document).ready( function() {
                 <div id="info">
                     <h1>Particle System by Ryan Endacott</h1>
                     <p>Number of particles: <label id="numParticlesLabel">0</label></p>
-                    <p>FPS: <label id="FPSLabel">30</label>
+                    <p>FPS: <label id="FPSLabel">30</label></p>
+                    <p>Fastmode is currently <label id="fastLabel">off</label></p>
                 </div>
                 <div id="instructions">
                     <ul>
@@ -530,6 +594,7 @@ $(document).ready( function() {
                         <li>Press 1 to create an obstacle.</li>
                         <li>Press 2 to create a permanent graviton at the mouse.  Note:  Your graviton will turn off all others.</li>
                         <li>Press r to reset the simulation.</li>
+                        <li>Press f to toggle fast mode.</li>
                     </ul>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 # Canvas Particle System
 
-This is a fun side project that I whipped up in my spare time.  You can see it on my personal site [here](http://ryan.endacott.me/particle-system/particles.html)!  I wanted to try out the HTML5 Canvas, and I also wanted to make a semidecent particle system.  So far, this is the result!  The HTML page has instructions, but here they are as well:
+This is a fun side project that I whipped up in my spare time.  I wanted to try out the HTML5 Canvas, and I also wanted to make a semidecent particle system.  So far, this is the result!  The HTML page has instructions, but here they are as well:
 
 ## Usage:
 *   It currently only works on chrome.
